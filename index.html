@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我们在一起的时光</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"PingFang SC",sans-serif}
+body{
+  min-height:100vh;
+  background:#fef5f8;
+  padding:40px 20px 60px;
+}
+header{text-align:center;margin-bottom:40px}
+h1{color:#d84370;font-size:26px;margin-bottom:24px}
+/* 时间盒子 */
+.time-box{
+  background:#fff;
+  border-radius:24px;
+  padding:28px 20px;
+  box-shadow:0 4px 14px rgba(216,67,112,0.1);
+  cursor:pointer;
+  transition:0.2;
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:16px;
+}
+.time-box:active{transform:scale(0.98)}
+.time-item{
+  text-align:center;
+  min-width:65px;
+}
+.time-item .num{
+  font-size:22px;
+  font-weight:bold;
+  color:#c73b62;
+  text-shadow:0 2px 4px rgba(199,59,98,0.15);
+}
+.time-item .label{
+  font-size:13px;
+  color:#888;
+  margin-top:4px;
+}
+/* 拍立得堆叠容器 */
+.photo-wall{
+  max-width:440px;
+  margin:50px auto 0;
+  height:480px;
+  position:relative;
+}
+.stack-wrap{
+  position:absolute;
+  width:120px;
+  cursor:pointer;
+}
+/* 单张拍立得卡片 */
+.polaroid{
+  position:absolute;
+  width:100%;
+  background:#fff;
+  padding:10px 10px 20px;
+  border-radius:4px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.12);
+  transition:0.3;
+}
+.polaroid img{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+  border-radius:2px;
+}
+.polaroid .note{
+  text-align:center;
+  margin-top:10px;
+  font-size:13px;
+  color:#555;
+}
+/* 五组堆叠位置，保留原来错落布局 */
+.stack1{top:10px;left:20px;transform:rotate(-2deg)}
+.stack2{top:20px;right:20px;transform:rotate(1.5deg)}
+.stack3{top:160px;left:40px;transform:rotate(0.5deg)}
+.stack4{top:180px;right:30px;transform:rotate(-1.5deg)}
+.stack5{top:340px;left:50px;transform:rotate(1deg)}
+.stack6{top:340px;right:50px;transform:rotate(-0.8deg)}
+/* 弹窗 */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:99;
+  padding:20px;
+}
+.modal.show{display:flex}
+.modal-content{
+  background:#fff;
+  border-radius:20px;
+  max-width:340px;
+  width:100%;
+  max-height:80vh;
+  overflow-y:auto;
+}
+.modal-text{padding:22px}
+.modal-text h3{color:#d84370;margin-bottom:12px}
+.modal-text p{line-height:1.8;color:#444;font-size:14px;white-space:pre-line}
+.close{
+  margin-top:18px;
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:#d84370;
+  color:#fff;
+  cursor:pointer;
+}
+.tip{
+  text-align:center;
+  color:#999;
+  font-size:13px;
+  margin-top:30px;
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>💌 我们在一起的时光</h1>
+  <div class="time-box" id="timeBox">
+    <div class="time-item">
+      <span class="num" id="year">0</span>
+      <span class="label">年</span>
+    </div>
+    <div class="time-item">
+      <span class="num" id="month">0</span>
+      <span class="label">月</span>
+    </div>
+    <div class="time-item">
+      <span class="num" id="day">0</span>
+      <span class="label">天</span>
+    </div>
+    <div class="time-item">
+      <span class="num" id="hour">0</span>
+      <span class="label">时</span>
+    </div>
+    <div class="time-item">
+      <span class="num" id="minute">0</span>
+      <span class="label">分</span>
+    </div>
+    <div class="time-item">
+      <span class="num" id="second">0</span>
+      <span class="label">秒</span>
+    </div>
+  </div>
+</header>
+
+<div class="photo-wall" id="photoWall"></div>
+<div class="tip">李轶男给钱溪蕊的特殊小礼物✨</div>
+
+<!-- 回忆弹窗 -->
+<div class="modal" id="memoryModal">
+  <div class="modal-content">
+    <div class="modal-text">
+      <h3 id="memTitle"></h3>
+      <p id="memText"></p>
+      <button class="close" onclick="closeMemoryModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 时间弹窗（点击时间盒子弹出） -->
+<div class="modal" id="essayModal">
+  <div class="modal-content">
+    <div class="modal-text">
+      <h3>彩蛋</h3>
+      <p id="essayContent"></p>
+      <button class="close" onclick="closeEssayModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 起始时间：2024年11月26日 14:00:00 ==========
+const startDate = new Date(2024, 10, 26, 14, 0, 0);
+
+// ========== 五组拍立得堆叠配置【全部改成反引号，直接回车换行不会崩】 ==========
+const stackList = [
+  {
+    stackClass: "stack1",
+    imgs: ["https://s41.ax1x.com/2026/10/31/pncpqUJ.png","https://s41.ax1x.com/2026/10/31/pncpbE4.jpg","https://s41.ax1x.com/2026/10/31/pncp4g0.png"],
+    title: "结尾与开始",
+    story: `高中喜欢了你好久 总想着没有一个正经的合照 好像不正经的合照都没有 最后鼓起勇气找你傻傻的合了一张影 衣服裤子都没有整理好 你也不提醒我一下 让我们的高中整整齐齐的结尾
+暑假心心念念约你吃饭你说要回西安 还好我不甘心 时常与你联系着 时常烦着你 一直到大一才和你吃上第一顿饭 看你吃饭的样子好可爱 还送了你小玩偶 
+接下来就是开始 怀着一颗忐忑的心 我向你表白了 虽然被你猜的八九不离十 但是你肯定想不到花出现的时机吧(≖֊≖) 还好你答应了 不然我要尴尬到吃花了`
+  },
+  {
+    stackClass: "stack2",
+    imgs: ["https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a45324b97.jpg","https://s41.ax1x.com/2026/10/31/pnc9nr8.jpg","https://s41.ax1x.com/2026/10/31/pnc9F5d.png","https://s41.ax1x.com/2026/10/31/pnc9V2t.png","https://s41.ax1x.com/2026/10/31/pnc9mKf.png","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a45418128.jpg"],
+    title: "幸福的小日常",
+    story: `和你吃了好多没吃过的好吃的 溜达了好多美美的公园 还和你在文景山上探讨了学术问题◉‿◉ 
+看见你在我身边萌萌的笑 开开心心的奔跑 总是发自内心的嘴角上扬呀 
+希望你多笑笑 和我一起傻呵呵的快乐`
+  },
+  {
+    stackClass: "stack3",
+    imgs: ["https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a2231b9d2.jpg","https://s41.ax1x.com/2026/10/31/pnc9G2q.png","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a20fa0134.jpg","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a5099f2ab.jpg","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a50a3f413.jpg","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a509c31ca.jpg"],
+    title: "两只猪的生日",
+    story: `看见小照片就想起来我收到小书时候流泪的样子 尴尬死了还被店员看到了 特别喜欢 和你闹矛盾的时候我就有时候翻出来看
+  也想起来小萌猪和大家过完生日自己难过过的和我说委屈屈 我说第二年和我过 我心里只有你
+  所以就有了那么多好看的生日照片呀 我做这些的时候看着都无敌心动 太可爱太萌了 我准备的好 你长的好嘻嘻
+为啥没有你给我送的花的照片！因为那系我的 不给你看`
+  },
+  {
+    stackClass: "stack4",
+    imgs: ["https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a20f9f218.jpg","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a20eb26ea.jpg","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a20f8f72b.jpg"],
+    title: "一周年 ᗜ֊ᗜ",
+    story: `这个枫叶超级好看 是我们昨年过周年前一周去看的 那天冷冷的 但是和你贴贴的时候暖暖的
+周年过的也是完美 超级开心 看到照片就想起来你给我夹头发还有拍照片了 超级认真超级萌 宣！`
+  },
+  {
+    stackClass: "stack5",
+    imgs: ["https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a4572584d.jpg","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a457240c0.jpg","https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5a452349f2.jpg"],
+    title: "洛阳之旅",
+    story: `烤肠大侠出世之地 是我 也是我和你第一次旅游的地方 短短的一周末超级开心！！！！！玩不够都 
+所以以后还想和你去更多的地方 拍好看的照片 还有在不同的地方(   ) 你肯定也是这么想的嘻嘻`
+  },
+  {
+    stackClass: "stack6",
+    imgs: ["https://bee-reg-ab.imagency.cn/mr/202610/31/6ae5ac195307f.jpg"],
+    title: "这是你",
+    story: `点一下时间试试的呀`
+  }
+];
+
+// ========== 时间盒子弹出的小作文 ==========
+const essayText = `
+给宝宝 啵啵 小萌猪 蕊蕊 的一封信： 
+   两周年快乐宝宝，不知道到你看到的时候有没有到两周年，也不知道我有没有没忍住告诉你这个小东西的存在，不过这是我计划很久的东西了，但是你放心的呀，不麻烦，也木有耽误我！
+   今年我们做了好多事，圆了我的旅游梦，而且是和你一起的旅游，我们吃了好吃的逛逛了好久，还志同道合的砍掉了冗余的行程，好开心呀，现在想想也是流出开心的眼泪。今年我还收到了你送我的花花，好大一束我去，超级好看还香香的，特别喜欢花也特别喜欢你。今年有小猪还用我的账号开启了自己的抖音之路，看你兴致勃勃的发照片，别人看见了我还有点小吃醋呢，但是看你那么开心，我也特别开心，你以后火了可别把我忘了，小心我抢走你的账号！还有好多好多喜欢的回忆，比如遇到老爷爷拍照，还有去乐华城玩，特别开心特别惊喜，如果没有你的话，我肯定没有这么多彩的经历！喜欢你宝宝，爱你宝宝！
+   感觉和你在一起的第二年慢慢的，也有争吵和插曲这样没有那么美好的回忆，但是在我心里不是糟糕的映像，因为我总感觉心里是稳稳的，不像第一年一样总是惴惴不安，不会心里总觉得你不在意我或者不关心我之类的，因为我相信咱们能解决好。但是也想和你说说对不起，心里总想着我们淡淡的稳稳的幸福着，偶尔做了让你难过的事，我自己心里也很自责，觉得自己没好好说话，没多问问你，但是做也做了，我没理由开解自己说没有做。但是宝宝我知道你心里也和我一样知道对方绝对爱自己，或许有时候做错了一些小事，我哄哄你你哄哄我，我们就好好的一起面对啦，我肯定会对你好好的呀，你也要对我好好的呀！爱你宝宝，如果你相信我们的话，亲亲我一口(如果咱们最后定的地方人有点多，可以挤我一下)。
+   下一年，我们又会有什么经历呢？奇思妙想的你有没有幻想呢？不管更多彩一点，或者平平淡淡的一年，只要和你一起我都会喜欢的！我相信你也是，对吗宝宝？爱你呀˶>ᗜ<˶
+                                         From：你身边的人
+`;
+
+// 渲染五组堆叠
+const photoWall = document.getElementById("photoWall");
+stackList.forEach((stack, idx) => {
+  const wrap = document.createElement("div");
+  wrap.className = "stack-wrap " + stack.stackClass;
+  // 给每组绑定当前显示索引，默认第0张（第一张在最上面）
+  wrap.dataset.current = 0;
+  wrap.dataset.max = stack.imgs.length - 1;
+  wrap.dataset.title = stack.title;
+  wrap.dataset.story = stack.story;
+
+  // 生成本组所有拍立得卡片，层级依次降低，形成堆叠效果
+  stack.imgs.forEach((imgSrc, i) => {
+    const card = document.createElement("div");
+    card.className = "polaroid";
+    card.style.zIndex = stack.imgs.length - i;
+    // 下面的卡片轻微偏移，模拟堆叠
+    card.style.top = (i * 2) + "px";
+    card.style.left = (i * 2) + "px";
+    card.innerHTML = `
+      <img src="${imgSrc}" alt="回忆">
+      <div class="note">${i+1}/${stack.imgs.length}</div>
+    `;
+    wrap.appendChild(card);
+  })
+
+  // 点击本组顶部卡片，切换图片
+  wrap.addEventListener("click",()=>{
+    let current = Number(wrap.dataset.current);
+    const max = Number(wrap.dataset.max);
+    // 如果是最后一张，直接弹出回忆
+    if(current >= max){
+      showMemoryModal(wrap.dataset.title, wrap.dataset.story);
+      return;
+    }
+    // 不是最后一张，索引+1，提升新卡片层级到最顶部
+    current++;
+    wrap.dataset.current = current;
+    const allCards = wrap.querySelectorAll(".polaroid");
+    allCards.forEach((c, i)=>{
+      c.style.zIndex = stack.imgs.length - Math.abs(i - current);
+    })
+  })
+  photoWall.appendChild(wrap);
+})
+
+// 回忆弹窗
+const memoryModal = document.getElementById("memoryModal");
+function showMemoryModal(title,text){
+  document.getElementById("memTitle").innerText = title;
+  document.getElementById("memText").innerText = text;
+  memoryModal.classList.add("show");
+}
+function closeMemoryModal(){
+  memoryModal.classList.remove("show");
+}
+memoryModal.addEventListener("click",(e)=>{
+  if(e.target === memoryModal) closeMemoryModal();
+})
+
+// 时间盒子弹窗
+const essayModal = document.getElementById("essayModal");
+document.getElementById("essayContent").innerText = essayText;
+document.getElementById("timeBox").addEventListener("click",()=>{
+  essayModal.classList.add("show");
+})
+function closeEssayModal(){
+  essayModal.classList.remove("show");
+}
+essayModal.addEventListener("click",(e)=>{
+  if(e.target === essayModal) closeEssayModal();
+})
+
+// ========== 【你原来的计时代码！原样复原】 ==========
+function updateTime(){
+  const now = new Date();
+  let years = now.getFullYear() - startDate.getFullYear();
+  let months = now.getMonth() - startDate.getMonth();
+  let days = now.getDate() - startDate.getDate();
+  let hours = now.getHours() - startDate.getHours();
+  let mins = now.getMinutes() - startDate.getMinutes();
+  let secs = now.getSeconds() - startDate.getSeconds();
+
+  if(secs < 0){ secs += 60; mins--; }
+  if(mins < 0){ mins += 60; hours--; }
+  if(hours < 0){ hours += 24; days--; }
+  if(days < 0){
+    const lastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    days += lastMonth.getDate();
+    months--;
+  }
+  if(months < 0){ months += 12; years--; }
+
+  document.getElementById("year").innerText = years;
+  document.getElementById("month").innerText = months;
+  document.getElementById("day").innerText = days;
+  document.getElementById("hour").innerText = hours;
+  document.getElementById("minute").innerText = mins;
+  document.getElementById("second").innerText = secs;
+}
+updateTime();
+setInterval(updateTime,1000);
+</script>
+</body>
+</html>
